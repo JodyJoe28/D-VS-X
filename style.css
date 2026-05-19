@@ -1,0 +1,177 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #080808;
+  color: white;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+}
+
+.hero {
+  text-align: center;
+  padding: 40px 20px 20px;
+}
+
+.hero h1 {
+  font-size: 4rem;
+  color: #39ff14;
+  letter-spacing: 3px;
+}
+
+.hero p {
+  color: #cccccc;
+  margin-top: 8px;
+}
+
+.container {
+  width: 92%;
+  max-width: 650px;
+  margin: 20px auto;
+}
+
+.record-card,
+.form-card,
+.history-card {
+  background: #151515;
+  border: 1px solid #292929;
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 0 25px rgba(57, 255, 20, 0.08);
+}
+
+h2 {
+  color: #39ff14;
+  margin-bottom: 18px;
+}
+
+.record-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  background: #222;
+  padding: 20px;
+  border-radius: 14px;
+  margin-bottom: 15px;
+}
+
+.record-box h3 {
+  font-size: 2rem;
+}
+
+.record-box p {
+  margin-top: 8px;
+  color: #cccccc;
+}
+
+.vs {
+  font-weight: bold;
+  color: #39ff14;
+  font-size: 1.5rem;
+}
+
+#seriesLeader {
+  text-align: center;
+  color: #dddddd;
+  font-weight: bold;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  color: #cccccc;
+}
+
+select,
+input,
+button {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  border: none;
+  font-size: 1rem;
+}
+
+select,
+input {
+  background: #242424;
+  color: white;
+}
+
+button {
+  background: #39ff14;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2bd80f;
+}
+
+.danger-btn {
+  background: #ff3333;
+  color: white;
+}
+
+.danger-btn:hover {
+  background: #cc2222;
+}
+
+#message {
+  color: #39ff14;
+  font-weight: bold;
+  text-align: center;
+}
+
+.game-card {
+  background: #222;
+  padding: 16px;
+  border-radius: 14px;
+  margin-bottom: 14px;
+  line-height: 1.7;
+}
+
+.game-card strong {
+  color: #39ff14;
+}
+
+.winner {
+  color: #39ff14;
+  font-weight: bold;
+}
+
+.game-number {
+  color: #cccccc;
+  font-size: 0.9rem;
+}.edit-btn {
+  background: #ffcc00;
+  color: black;
+  margin-top: 10px;
+}
+
+.edit-btn:hover {
+  background: #d9ad00;
+}
+
+.edit-log {
+  background: #111;
+  border-left: 4px solid #ffcc00;
+  padding: 12px;
+  margin-top: 12px;
+  border-radius: 8px;
+  color: #dddddd;
+  font-size: 0.9rem;
+}
+
+.edit-log-title {
+  color: #ffcc00;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
