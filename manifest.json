@@ -1,0 +1,23 @@
+{
+  "name": "D vs X Madden Records",
+  "short_name": "D vs X",
+  "description": "Official Madden 26 record tracker for D vs X.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#050608",
+  "theme_color": "#32ff7e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
