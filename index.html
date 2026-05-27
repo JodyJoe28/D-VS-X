@@ -163,42 +163,6 @@ body {
 html {
   scroll-behavior: smooth;
 }
-/* SHINE ON CARDS */
-.record-card::before,
-.form-card::before,
-.history-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-
-  background: rgba(8, 10, 14, 0.78);
-
-  transform: translateX(-120%);
-  animation: cardShine 5s ease-in-out infinite;
-}
-
-@keyframes cardShine {
-  0%, 65% {
-    transform: translateX(-120%);
-  }
-
-  100% {
-    transform: translateX(120%);
-  }
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 /* HEADINGS */
 h2 {
@@ -370,28 +334,6 @@ button:active {
   transform: scale(0.98);
 }
 
-/* BUTTON SHIMMER */
-button::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -110%;
-  width: 70%;
-  height: 100%;
-
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(255,255,255,0.55),
-    transparent
-  );
-
-  transition: 0.55s ease;
-}
-
-button:hover::after {
-  left: 125%;
-}
 
 /* CANCEL BUTTON */
 .danger-btn {
@@ -595,6 +537,9 @@ button:hover::after {
   button {
     font-size: 0.95rem;
   }
+  .starting-record-editor {
+  display: none;
+}
 }
   </style>
 </head>
@@ -653,8 +598,8 @@ button:hover::after {
       <p id="season2026Leader">Loading 2026 record...</p>
     </section>
 
-    <section class="form-card">
-      <h2>Set Starting Records</h2>
+<section class="form-card starting-record-editor">
+  <h2>Set Starting Records</h2>
 
       <h3 class="small-title">Overall Starting Record</h3>
 
