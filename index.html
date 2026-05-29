@@ -540,6 +540,81 @@ button:active {
   .starting-record-editor {
   display: none;
 }
+}.status-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 0.8rem;
+}
+
+.status-pending {
+  color: #151000;
+  background: linear-gradient(135deg, #f7c948, #ffe28a);
+}
+
+.status-confirmed {
+  color: #041009;
+  background: linear-gradient(135deg, #32ff7e, #b3ffc9);
+}
+
+.status-disputed {
+  color: white;
+  background: linear-gradient(135deg, #ff4d4d, #ff9a9a);
+}
+
+.confirmation-box {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.confirm-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #32ff7e, #b3ffc9);
+  color: #041009;
+}
+
+.dispute-btn {
+  background: linear-gradient(135deg, #ff4d4d, #ff9a9a);
+  color: white;
+}
+
+.proof-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.proof-link {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: #32ff7e;
+  font-weight: bold;
+}
+
+.proof-img {
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+@media (max-width: 520px) {
+  .confirm-buttons {
+    grid-template-columns: 1fr;
+  }
 }
   </style>
 </head>
@@ -598,7 +673,7 @@ button:active {
       <p id="season2026Leader">Loading 2026 record...</p>
     </section>
 
-<section class="form-card starting-record-editor">
+<<section class="form-card starting-record-editor" style="display: none;">
   <h2>Set Starting Records</h2>
 
       <h3 class="small-title">Overall Starting Record</h3>
@@ -640,6 +715,8 @@ button:active {
 
       <label>X's Score</label>
       <input type="number" id="xScore" placeholder="Enter X's score" />
+<label>Screenshot Proof Optional</label>
+<input type="file" id="proofScreenshot" accept="image/*" />
 
       <button id="saveGameBtn">Save Game</button>
       <button id="cancelEditBtn" class="danger-btn" style="display: none;">Cancel Edit</button>
@@ -672,7 +749,12 @@ button:active {
       serverTimestamp,
       arrayUnion
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
     const firebaseConfig = {
      apiKey: "AIzaSyA3PD60iJnZB3sRGYVwTFv-vpLuEG2xHDA",
   authDomain: "madden-records.firebaseapp.com",
@@ -685,6 +767,7 @@ button:active {
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+const storage = getStorage(app);
 
     const nflTeams = [
       "Arizona Cardinals",
@@ -725,7 +808,7 @@ button:active {
     const xTeamSelect = document.getElementById("xTeam");
     const dScoreInput = document.getElementById("dScore");
     const xScoreInput = document.getElementById("xScore");
-
+    const proofScreenshotInput = document.getElementById("proofScreenshot");
     const saveGameBtn = document.getElementById("saveGameBtn");
     const cancelEditBtn = document.getElementById("cancelEditBtn");
 
@@ -853,99 +936,145 @@ button:active {
       }
     }
 
-    async function saveGame() {
-      const dTeam = dTeamSelect.value;
-      const xTeam = xTeamSelect.value;
-      const dScore = Number(dScoreInput.value);
-      const xScore = Number(xScoreInput.value);
+async function saveGame() {
+  const dTeam = dTeamSelect.value;
+  const xTeam = xTeamSelect.value;
+  const dScore = Number(dScoreInput.value);
+  const xScore = Number(xScoreInput.value);
+  const proofFile = proofScreenshotInput.files[0];
 
-      if (dTeam === "" || xTeam === "") {
-        message.textContent = "Select both NFL teams first.";
-        return;
-      }
+  if (dTeam === "" || xTeam === "") {
+    message.textContent = "Select both NFL teams first.";
+    return;
+  }
 
-      if (dScoreInput.value === "" || xScoreInput.value === "") {
-        message.textContent = "Enter both scores first.";
-        return;
-      }
+  if (dScoreInput.value === "" || xScoreInput.value === "") {
+    message.textContent = "Enter both scores first.";
+    return;
+  }
 
-      if (dScore === xScore) {
-        message.textContent = "Madden games cannot end in a tie. Enter the correct final score.";
-        return;
-      }
+  if (dScore === xScore) {
+    message.textContent = "Madden games cannot end in a tie. Enter the correct final score.";
+    return;
+  }
 
-      const winner = dScore > xScore ? "D" : "X";
+  const winner = dScore > xScore ? "D" : "X";
 
-      saveGameBtn.disabled = true;
+  saveGameBtn.disabled = true;
+  saveGameBtn.textContent = "Saving...";
 
-      try {
-        if (editingGameId === null) {
-          await addDoc(collection(db, "games"), {
-            dTeam: dTeam,
-            xTeam: xTeam,
-            dScore: dScore,
-            xScore: xScore,
-            winner: winner,
-            createdAt: serverTimestamp(),
-            edits: []
-          });
+  try {
+    let proofUrl = "";
 
-          message.textContent = "Game saved online. Record updated.";
-        } else {
-          const gameToEdit = games.find(function(game) {
-            return game.id === editingGameId;
-          });
+    if (proofFile) {
+      const fileName = Date.now() + "-" + proofFile.name;
+      const imageRef = ref(storage, "proof-screenshots/" + fileName);
 
-          if (!gameToEdit) {
-            message.textContent = "Could not find that game to edit.";
-            saveGameBtn.disabled = false;
-            return;
-          }
-
-          const before = {
-            dTeam: gameToEdit.dTeam,
-            xTeam: gameToEdit.xTeam,
-            dScore: gameToEdit.dScore,
-            xScore: gameToEdit.xScore,
-            winner: gameToEdit.winner
-          };
-
-          const after = {
-            dTeam: dTeam,
-            xTeam: xTeam,
-            dScore: dScore,
-            xScore: xScore,
-            winner: winner
-          };
-
-          await updateDoc(doc(db, "games", editingGameId), {
-            dTeam: dTeam,
-            xTeam: xTeam,
-            dScore: dScore,
-            xScore: xScore,
-            winner: winner,
-            edits: arrayUnion({
-              editedAt: new Date().toLocaleString(),
-              before: before,
-              after: after
-            })
-          });
-
-          message.textContent = "Game edited online. Before and after saved.";
-
-          editingGameId = null;
-          saveGameBtn.textContent = "Save Game";
-          cancelEditBtn.style.display = "none";
-        }
-
-        clearForm();
-      } catch (error) {
-        console.error(error);
-        message.textContent = "Could not save game. Check Firebase setup.";
-      }
-
-      saveGameBtn.disabled = false;
+      await uploadBytes(imageRef, proofFile);
+      proofUrl = await getDownloadURL(imageRef);
     }
+
+    if (editingGameId === null) {
+      await addDoc(collection(db, "games"), {
+        dTeam: dTeam,
+        xTeam: xTeam,
+        dScore: dScore,
+        xScore: xScore,
+        winner: winner,
+
+        proofUrl: proofUrl,
+
+        dConfirmed: false,
+        xConfirmed: false,
+        dDisputed: false,
+        xDisputed: false,
+
+        status: "pending_confirmation",
+
+        createdAt: serverTimestamp(),
+        edits: []
+      });
+
+      message.textContent = "Game saved. Waiting for D and X to confirm.";
+    } else {
+      const gameToEdit = games.find(function(game) {
+        return game.id === editingGameId;
+      });
+
+      if (!gameToEdit) {
+        message.textContent = "Could not find that game to edit.";
+        saveGameBtn.disabled = false;
+        saveGameBtn.textContent = "Save Game";
+        return;
+      }
+
+      const before = {
+        dTeam: gameToEdit.dTeam,
+        xTeam: gameToEdit.xTeam,
+        dScore: gameToEdit.dScore,
+        xScore: gameToEdit.xScore,
+        winner: gameToEdit.winner,
+        status: gameToEdit.status || "pending_confirmation"
+      };
+
+      const after = {
+        dTeam: dTeam,
+        xTeam: xTeam,
+        dScore: dScore,
+        xScore: xScore,
+        winner: winner,
+        status: "pending_confirmation"
+      };
+
+      let updatedProofUrl = gameToEdit.proofUrl || "";
+
+      if (proofFile) {
+        const fileName = Date.now() + "-" + proofFile.name;
+        const imageRef = ref(storage, "proof-screenshots/" + fileName);
+
+        await uploadBytes(imageRef, proofFile);
+        updatedProofUrl = await getDownloadURL(imageRef);
+      }
+
+      await updateDoc(doc(db, "games", editingGameId), {
+        dTeam: dTeam,
+        xTeam: xTeam,
+        dScore: dScore,
+        xScore: xScore,
+        winner: winner,
+        proofUrl: updatedProofUrl,
+
+        dConfirmed: false,
+        xConfirmed: false,
+        dDisputed: false,
+        xDisputed: false,
+
+        status: "pending_confirmation",
+
+        edits: arrayUnion({
+          editedAt: new Date().toLocaleString(),
+          before: before,
+          after: after
+        })
+      });
+
+      message.textContent = "Game edited. Confirmations reset.";
+
+      editingGameId = null;
+      saveGameBtn.textContent = "Save Game";
+      cancelEditBtn.style.display = "none";
+    }
+
+    clearForm();
+
+  } catch (error) {
+    console.error(error);
+    message.textContent = "Could not save game. Check Firebase setup.";
+  }
+
+  saveGameBtn.disabled = false;
+  saveGameBtn.textContent = "Save Game";
+}
 
     function startEditGame(gameId) {
       const gameToEdit = games.find(function(game) {
@@ -982,13 +1111,74 @@ button:active {
       message.textContent = "Edit cancelled.";
       clearForm();
     }
+async function confirmGame(gameId, player) {
+  const gameToUpdate = games.find(function(game) {
+    return game.id === gameId;
+  });
 
+  if (!gameToUpdate) {
+    message.textContent = "Could not find that game.";
+    return;
+  }
+
+  const updates = {};
+
+  if (player === "D") {
+    updates.dConfirmed = true;
+    updates.dDisputed = false;
+  }
+
+  if (player === "X") {
+    updates.xConfirmed = true;
+    updates.xDisputed = false;
+  }
+
+  const finalDConfirmed = player === "D" ? true : gameToUpdate.dConfirmed;
+  const finalXConfirmed = player === "X" ? true : gameToUpdate.xConfirmed;
+
+  if (finalDConfirmed && finalXConfirmed) {
+    updates.status = "confirmed";
+  } else {
+    updates.status = "pending_confirmation";
+  }
+
+  try {
+    await updateDoc(doc(db, "games", gameId), updates);
+  } catch (error) {
+    console.error(error);
+    message.textContent = "Could not confirm game.";
+  }
+}
+
+async function disputeGame(gameId, player) {
+  const updates = {
+    status: "disputed"
+  };
+
+  if (player === "D") {
+    updates.dDisputed = true;
+    updates.dConfirmed = false;
+  }
+
+  if (player === "X") {
+    updates.xDisputed = true;
+    updates.xConfirmed = false;
+  }
+
+  try {
+    await updateDoc(doc(db, "games", gameId), updates);
+  } catch (error) {
+    console.error(error);
+    message.textContent = "Could not dispute game.";
+  }
+}
     function clearForm() {
       dScoreInput.value = "";
       xScoreInput.value = "";
       dTeamSelect.value = "";
       xTeamSelect.value = "";
-    }
+    proofScreenshotInput.value = "";
+  }
 
     function updatePage() {
       let dOverallWins = startingRecord.dOverallStartWins || 0;
@@ -1032,7 +1222,7 @@ button:active {
       showGameHistory();
     }
 
-   function showGameHistory() {
+function showGameHistory() {
   if (games.length === 0) {
     gameHistory.innerHTML = "No new games recorded yet.";
     return;
@@ -1050,6 +1240,35 @@ button:active {
       gameDate = game.createdAt.toDate().toLocaleString();
     }
 
+    let statusText = "Pending Confirmation";
+    let statusClass = "status-pending";
+
+    if (game.status === "confirmed") {
+      statusText = "Confirmed Official";
+      statusClass = "status-confirmed";
+    }
+
+    if (game.status === "disputed") {
+      statusText = "Disputed";
+      statusClass = "status-disputed";
+    }
+
+    let proofHTML = "";
+
+    if (game.proofUrl) {
+      proofHTML = `
+        <div class="proof-box">
+          <p><strong>Proof Uploaded:</strong> ✅</p>
+          <a href="${game.proofUrl}" target="_blank" class="proof-link">View Screenshot</a>
+          <img src="${game.proofUrl}" alt="Game proof screenshot" class="proof-img" />
+        </div>
+      `;
+    } else {
+      proofHTML = `
+        <p class="timestamp">No screenshot proof uploaded.</p>
+      `;
+    }
+
     let editHistoryHTML = "";
 
     if (game.edits && game.edits.length > 0) {
@@ -1062,6 +1281,7 @@ button:active {
             <p>D: ${edit.before.dTeam} - ${edit.before.dScore}</p>
             <p>X: ${edit.before.xTeam} - ${edit.before.xScore}</p>
             <p>Winner: ${edit.before.winner}</p>
+            <p>Status: ${edit.before.status}</p>
 
             <br>
 
@@ -1069,6 +1289,7 @@ button:active {
             <p>D: ${edit.after.dTeam} - ${edit.after.dScore}</p>
             <p>X: ${edit.after.xTeam} - ${edit.after.xScore}</p>
             <p>Winner: ${edit.after.winner}</p>
+            <p>Status: ${edit.after.status}</p>
           </div>
         `;
       });
@@ -1077,10 +1298,29 @@ button:active {
     historyHTML += `
       <div class="game-card">
         <p class="game-number">Game #${gameNumber}</p>
+
         <p><strong>D:</strong> ${game.dTeam} - ${game.dScore}</p>
         <p><strong>X:</strong> ${game.xTeam} - ${game.xScore}</p>
+
         <p>Winner: <span class="winner">${game.winner}</span></p>
         <p class="timestamp"><strong>Submitted:</strong> ${gameDate}</p>
+
+        <p>Status: <span class="status-badge ${statusClass}">${statusText}</span></p>
+
+        <div class="confirmation-box">
+          <p><strong>D Confirmed:</strong> ${game.dConfirmed ? "✅" : "❌"}</p>
+          <p><strong>X Confirmed:</strong> ${game.xConfirmed ? "✅" : "❌"}</p>
+        </div>
+
+        ${proofHTML}
+
+        <div class="confirm-buttons">
+          <button class="confirm-btn" data-id="${game.id}" data-player="D">D Confirm</button>
+          <button class="confirm-btn" data-id="${game.id}" data-player="X">X Confirm</button>
+
+          <button class="dispute-btn" data-id="${game.id}" data-player="D">D Dispute</button>
+          <button class="dispute-btn" data-id="${game.id}" data-player="X">X Dispute</button>
+        </div>
 
         <button class="edit-btn" data-id="${game.id}">
           Edit Game
@@ -1100,21 +1340,32 @@ button:active {
       startEditGame(button.dataset.id);
     });
   });
-}
-    saveGameBtn.addEventListener("click", saveGame);
-    cancelEditBtn.addEventListener("click", cancelEdit);
-    saveStartingRecordBtn.addEventListener("click", saveStartingRecord);
 
-    loadTeams();
-    listenForStartingRecord();
-    listenForGames();
-  </script><script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function() {
-      navigator.serviceWorker.register("./service-worker.js");
+  const confirmButtons = document.querySelectorAll(".confirm-btn");
+
+  confirmButtons.forEach(function(button) {
+    button.addEventListener("click", function() {
+      confirmGame(button.dataset.id, button.dataset.player);
     });
-  }
-</script>
+  });
+
+  const disputeButtons = document.querySelectorAll(".dispute-btn");
+
+  disputeButtons.forEach(function(button) {
+    button.addEventListener("click", function() {
+disputeGame(button.dataset.id, button.dataset.player);
+    });
+  });
+}
+
+loadTeams();
+listenForStartingRecord();
+listenForGames();
+
+saveGameBtn.addEventListener("click", saveGame);
+cancelEditBtn.addEventListener("click", cancelEdit);
+saveStartingRecordBtn.addEventListener("click", saveStartingRecord);
+  </script>
 
 </body>
 </html>
